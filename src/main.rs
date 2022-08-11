@@ -1,13 +1,12 @@
 mod cmd;
 
-use tracing::metadata::LevelFilter;
+use tracing::{metadata::LevelFilter, error, info};
 use tracing_appender::non_blocking;
 use tracing_subscriber::{fmt::layer as fmt_layer, prelude::*, registry, filter::EnvFilter};
 
 use cmd::execute;
 
 fn main() {
-
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
@@ -18,8 +17,12 @@ fn main() {
         .with_level(true)
         .with_thread_names(true)
         .with_target(true)
-        .with_writer(stdout_non_blocking)
-        .with_filter(LevelFilter::INFO);
+        .with_writer(stdout_non_blocking);
+
+    #[cfg(debug_assertions)]
+    let stdout_layer = stdout_layer.with_filter(LevelFilter::INFO);
+    #[cfg(not(debug_assertions))]
+    let stdout_layer = stdout_layer.with_filter(LevelFilter::ERROR);
 
     registry().with(env_filter).with(stdout_layer).init();
 
@@ -30,14 +33,21 @@ fn main() {
         .worker_threads(2)
         .build();
 
-    let runtime = runtime.unwrap(); // TODO: Check error
+    let runtime = match runtime {
+        Ok(r) => r,
+        Err(e) => {
+            error!("Failed to create tokio runtime: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     runtime.block_on(async {
         let result = execute().await;
 
         if let Err(e) = result {
-            // TODO: Use logger
-            eprintln!("Some error has occurred {e}");
+            error!("Some error has occurred {}", e);
         }
     });
+
+    info!("Command finished, exiting...");
 }

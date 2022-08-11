@@ -50,7 +50,7 @@ impl DownloadCommand {
 
         let mut tmp_file = File::create(&path_buffer).await?;
 
-        info!("Copying Stream to Temp file");
+        debug!("Copying Stream to Temp file");
         while let Some(chunk) = stream.next().await {
             let chunk_data: Bytes = chunk?;
             let mut cursor = Cursor::new(chunk_data);
@@ -66,15 +66,15 @@ impl DownloadCommand {
                 }
             }
         }
-        info!("Copying to TempFile finished");
+        debug!("Copying to TempFile finished");
 
-        info!("Starting decompression");
+        debug!("Starting decompression");
         drop(tmp_file);
         let mut gzip_decoder = GzipDecoder::new(BufReader::new(File::open(&path_buffer).await?));
 
         match tokio::io::copy(&mut gzip_decoder, output_file).await {
             Ok(_) => {
-                info!("Decompression finished, removing temp file");
+                debug!("Decompression finished, removing temp file");
                 tokio::fs::remove_file(&path_buffer).await?;
                 Ok(())
             }

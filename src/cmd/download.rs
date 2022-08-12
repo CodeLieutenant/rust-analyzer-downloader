@@ -2,16 +2,14 @@ use async_compression::tokio::bufread::GzipDecoder;
 use bytes::Bytes;
 use directories::BaseDirs;
 use futures_util::{Stream, StreamExt};
-#[cfg(target_family="unix")]
-use std::{os::unix::prelude::PermissionsExt, fs::Permissions};
-use std::{
-    fmt::Debug,  io::Cursor, path::PathBuf,
-};
+use std::{fmt::Debug, io::Cursor, path::PathBuf};
+#[cfg(target_family = "unix")]
+use std::{fs::Permissions, os::unix::prelude::PermissionsExt};
 use tokio::{
     fs::File,
     io::{self, AsyncWrite, BufReader},
 };
-use tracing::{debug, error, info, warn, span, Level};
+use tracing::{debug, error, warn};
 
 #[derive(Debug, thiserror::Error)]
 pub(super) enum Errors {
@@ -41,7 +39,7 @@ impl DownloadCommand {
     async fn decompress<S, O>(&self, stream: &mut S, output_file: &mut O) -> Result<(), Errors>
     where
         S: Stream<Item = Result<Bytes, reqwest::Error>> + Unpin,
-        O: AsyncWrite + Unpin
+        O: AsyncWrite + Unpin,
     {
         let base_dirs = BaseDirs::new().unwrap();
         let mut path_buffer = PathBuf::new();
@@ -58,7 +56,10 @@ impl DownloadCommand {
             let mut cursor = Cursor::new(chunk_data);
             match tokio::io::copy(&mut cursor, &mut tmp_file).await {
                 Ok(_) => {
-                    debug!("Copied chunk to temp file {temp_file}", temp_file=path_buffer.display());
+                    debug!(
+                        "Copied chunk to temp file {temp_file}",
+                        temp_file = path_buffer.display()
+                    );
                 }
                 Err(e) => {
                     error!("Some error has occurred while copying stream to temp file: {} TempFile {temp_file}", e, temp_file=path_buffer.display());
@@ -102,9 +103,9 @@ impl DownloadCommand {
         let mut stream = res.bytes_stream();
         let mut file = File::create(&self.output).await?;
 
-        #[cfg(target_family="unix")]
+        #[cfg(target_family = "unix")]
         debug!("Setting permissions to file to 755 executable");
-        #[cfg(target_family="unix")]
+        #[cfg(target_family = "unix")]
         file.set_permissions(Permissions::from_mode(0o755)).await?;
 
         match self.decompress(&mut stream, &mut file).await {

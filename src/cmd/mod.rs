@@ -31,25 +31,24 @@ fn get_default_output_path(output_path: Option<String>) -> String {
     let home_dir = base_dirs.home_dir();
 
     match output_path {
-                Some(value) => value,
-                None => {
-                    let mut buf = PathBuf::new();
+        Some(value) => value,
+        None => {
+            let mut buf = PathBuf::new();
 
-                    buf.push(home_dir);
-                    buf.push("bin");
-                    #[cfg(target_family="windows")]
-                    buf.push("rust-analyzer.exe");
-                    #[cfg(target_family="unix")]
-                    buf.push("rust-analyzer");
+            buf.push(home_dir);
+            buf.push("bin");
+            #[cfg(target_family = "windows")]
+            buf.push("rust-analyzer.exe");
+            #[cfg(target_family = "unix")]
+            buf.push("rust-analyzer");
 
-                    buf.as_path().to_string_lossy().into()
-                },
-            }
+            buf.as_path().to_string_lossy().into()
+        }
+    }
 }
 
 pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
-
 
     match args.commands {
         Commands::Download { version, output } => {

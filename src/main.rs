@@ -1,8 +1,8 @@
 mod cmd;
 
-use tracing::{metadata::LevelFilter, error, info};
+use tracing::{error, info, metadata::LevelFilter};
 use tracing_appender::non_blocking;
-use tracing_subscriber::{fmt::layer as fmt_layer, prelude::*, registry, filter::EnvFilter};
+use tracing_subscriber::{filter::EnvFilter, fmt::layer as fmt_layer, prelude::*, registry};
 
 use cmd::execute;
 

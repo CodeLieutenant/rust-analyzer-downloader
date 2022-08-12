@@ -26,25 +26,34 @@ pub struct Cli {
     commands: Commands,
 }
 
-pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Cli::parse();
+fn get_default_output_path(output_path: Option<String>) -> String {
     let base_dirs = BaseDirs::new().unwrap();
     let home_dir = base_dirs.home_dir();
 
-    match args.commands {
-        Commands::Download { version, output } => {
-            let output_path = match output {
+    match output_path {
                 Some(value) => value,
                 None => {
                     let mut buf = PathBuf::new();
+
                     buf.push(home_dir);
-                        buf.push("bin");
-                        buf.push("rust-analyzer");
+                    buf.push("bin");
+                    #[cfg(target_family="windows")]
+                    buf.push("rust-analyzer.exe");
+                    #[cfg(target_family="unix")]
+                    buf.push("rust-analyzer");
 
                     buf.as_path().to_string_lossy().into()
                 },
-            };
+            }
+}
 
+pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Cli::parse();
+
+
+    match args.commands {
+        Commands::Download { version, output } => {
+            let output_path = get_default_output_path(output);
             let command = download::DownloadCommand::new(version, output_path);
             if let Err(e) = command.execute().await {
                 Err(Box::new(e))

@@ -2,8 +2,10 @@ use async_compression::tokio::bufread::GzipDecoder;
 use bytes::Bytes;
 use directories::BaseDirs;
 use futures_util::{Stream, StreamExt};
+#[cfg(target_family="unix")]
+use std::{os::unix::prelude::PermissionsExt, fs::Permissions};
 use std::{
-    fmt::Debug, fs::Permissions, io::Cursor, os::unix::prelude::PermissionsExt, path::PathBuf,
+    fmt::Debug,  io::Cursor, path::PathBuf,
 };
 use tokio::{
     fs::File,
@@ -100,7 +102,9 @@ impl DownloadCommand {
         let mut stream = res.bytes_stream();
         let mut file = File::create(&self.output).await?;
 
+        #[cfg(target_family="unix")]
         debug!("Setting permissions to file to 755 executable");
+        #[cfg(target_family="unix")]
         file.set_permissions(Permissions::from_mode(0o755)).await?;
 
         match self.decompress(&mut stream, &mut file).await {

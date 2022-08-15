@@ -22,7 +22,7 @@ fn main() {
     #[cfg(debug_assertions)]
     let stdout_layer = stdout_layer.with_filter(LevelFilter::INFO);
     #[cfg(not(debug_assertions))]
-    let stdout_layer = stdout_layer.with_filter(LevelFilter::ERROR);
+    let stdout_layer = stdout_layer.with_filter(LevelFilter::INFO);
 
     registry().with(env_filter).with(stdout_layer).init();
 

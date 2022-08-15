@@ -18,3 +18,5 @@ async-compression = { version = "0.3.14", features = ["futures-io", "tokio"] }
 tracing-appender = { version = "0.2.2", features = ["parking_lot"] }
 tracing = { version = "0.1.36", features = ["async-await"] }
 tracing-subscriber = { version = "0.3.15", features = ["parking_lot", "serde", "serde_json", "time", "tracing", "once_cell", "env-filter"] }
+serde = { version = "1.0.143", features = ["derive"] }
+bat = "0.21.0"

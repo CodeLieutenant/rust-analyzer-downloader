@@ -10,12 +10,15 @@ mod get_versions;
 enum Commands {
     #[clap(arg_required_else_help = true)]
     Download {
-        #[clap(required = true, value_parser)]
+        #[clap(required = false, value_parser, default_value_t=String::from("nightly"))]
         version: String,
-        #[clap(required = false, value_parser)]
-        output: Option<String>,
+        #[clap(required = false, value_parser, default_value_t=get_default_output_path())]
+        output: String,
     },
-    GetVersions,
+    GetVersions {
+        #[clap(required = false, value_parser, default_value_t = 3)]
+        per_page: u32,
+    },
 }
 
 #[derive(Debug, Parser)]
@@ -26,25 +29,20 @@ pub struct Cli {
     commands: Commands,
 }
 
-fn get_default_output_path(output_path: Option<String>) -> String {
+fn get_default_output_path() -> String {
     let base_dirs = BaseDirs::new().unwrap();
     let home_dir = base_dirs.home_dir();
 
-    match output_path {
-        Some(value) => value,
-        None => {
-            let mut buf = PathBuf::new();
+    let mut buf = PathBuf::new();
 
-            buf.push(home_dir);
-            buf.push("bin");
-            #[cfg(target_family = "windows")]
-            buf.push("rust-analyzer.exe");
-            #[cfg(target_family = "unix")]
-            buf.push("rust-analyzer");
+    buf.push(home_dir);
+    buf.push("bin");
+    #[cfg(target_family = "windows")]
+    buf.push("rust-analyzer.exe");
+    #[cfg(target_family = "unix")]
+    buf.push("rust-analyzer");
 
-            buf.as_path().to_string_lossy().into()
-        }
-    }
+    buf.as_path().to_string_lossy().into()
 }
 
 pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
@@ -52,16 +50,15 @@ pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
 
     match args.commands {
         Commands::Download { version, output } => {
-            let output_path = get_default_output_path(output);
-            let command = download::DownloadCommand::new(version, output_path);
+            let command = download::DownloadCommand::new(version, output);
             if let Err(e) = command.execute().await {
                 Err(Box::new(e))
             } else {
                 Ok(())
             }
         }
-        Commands::GetVersions => {
-            let command = get_versions::GetVersionsCommand::new();
+        Commands::GetVersions { per_page } => {
+            let command = get_versions::GetVersionsCommand::new(per_page);
 
             if let Err(e) = command.execute().await {
                 Err(Box::new(e))

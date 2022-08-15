@@ -1,14 +1,19 @@
-#[derive(Debug, thiserror::Error)]
+use std::{future::Future, io::Error as IoError};
+
+use reqwest::Error as ReqwestError;
+use thiserror::Error as ThisError;
+
+#[derive(Debug, ThisError)]
 pub(super) enum Errors {
     #[error(transparent)]
-    Network(#[from] reqwest::Error),
+    Network(#[from] ReqwestError),
 
     #[error(transparent)]
-    File(#[from] std::io::Error),
+    File(#[from] IoError),
 }
 
 pub(super) trait Command {
-    type Future: std::future::Future<Output = Result<(), Errors>>;
+    type Future: Future<Output = Result<(), Errors>>;
 
     fn execute(self) -> Self::Future;
 }

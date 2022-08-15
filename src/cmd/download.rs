@@ -3,7 +3,13 @@ use async_compression::tokio::bufread::GzipDecoder;
 use bytes::Bytes;
 use directories::BaseDirs;
 use futures_util::{Stream, StreamExt};
-use std::{fmt::Debug, io::Cursor, path::PathBuf, pin::Pin, task::{Poll, Context}};
+use std::{
+    fmt::Debug,
+    io::Cursor,
+    path::PathBuf,
+    pin::Pin,
+    task::{Context, Poll},
+};
 #[cfg(target_family = "unix")]
 use std::{fs::Permissions, os::unix::prelude::PermissionsExt};
 use tokio::{
@@ -120,9 +126,7 @@ impl Command for DownloadCommand {
     fn execute(self) -> DownloadCommandFuture {
         DownloadCommandFuture
     }
-
 }
-
 
 impl std::future::Future for DownloadCommandFuture {
     type Output = Result<(), Errors>;

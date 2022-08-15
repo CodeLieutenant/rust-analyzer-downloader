@@ -28,3 +28,11 @@ SUBCOMMANDS:
 ```
 cargo build --release
 ```
+
+## Support
+
+If you are having problems, please let us know by [raising a new issue](https://github.com/malusev998/rust-analyzer-downloader/issues/new).
+
+## License
+
+This project is licensed with the [Apache License 2.0](LICENSE).

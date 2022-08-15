@@ -67,23 +67,12 @@ impl GetVersionsCommand {
     }
 }
 
-pub(super) struct GetVersionsCommandFuture(GetVersionsCommand);
-
+#[async_trait::async_trait]
 impl Command for GetVersionsCommand {
-    type Future = GetVersionsCommandFuture;
-    fn execute(self) -> Self::Future {
-        GetVersionsCommandFuture(self)
-    }
-}
-
-impl std::future::Future for GetVersionsCommandFuture {
-    type Output = Result<(), Errors>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // match self.get_data(RELEASE_GITHUB_API_URL, 1).await {
-        //     Ok(_next_page) => Ok(()),
-        //     Err(err) => Err(err),
-        // }
-        Poll::Pending
+    async fn execute(self) -> Result<(), Errors> {
+        match self.get_data(RELEASE_GITHUB_API_URL, 1).await {
+            Ok(_next_page) => Ok(()),
+            Err(err) => Err(err),
+        }
     }
 }

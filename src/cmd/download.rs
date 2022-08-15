@@ -118,43 +118,29 @@ impl DownloadCommand {
     }
 }
 
-pub(super) struct DownloadCommandFuture;
-
+#[async_trait::async_trait]
 impl Command for DownloadCommand {
-    type Future = DownloadCommandFuture;
+    async fn execute(self) -> Result<(), Errors> {
+        let url = self.get_download_url();
+        debug!("Downloading from: {url}", url = url);
+        let res = self.client.get(url).send().await?;
+        debug!("Response status: {status}", status = res.status());
 
-    fn execute(self) -> DownloadCommandFuture {
-        DownloadCommandFuture
-    }
-}
+        let mut stream = res.bytes_stream();
+        let mut file = File::create(&self.output).await?;
 
-impl std::future::Future for DownloadCommandFuture {
-    type Output = Result<(), Errors>;
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.get_mut();
-        // this.execute().poll(cx)
-        // let url = self.get_download_url();
-        // debug!("Downloading from: {url}", url = url);
-        // let res = self.client.get(url).send().await?;
-        // debug!("Response status: {status}", status = res.status());
+        #[cfg(target_family = "unix")]
+        debug!("Setting permissions to file to 755 executable");
+        #[cfg(target_family = "unix")]
+        file.set_permissions(Permissions::from_mode(0o755)).await?;
 
-        // let mut stream = res.bytes_stream();
-        // let mut file = File::create(&self.output).await?;
-
-        // #[cfg(target_family = "unix")]
-        // debug!("Setting permissions to file to 755 executable");
-        // #[cfg(target_family = "unix")]
-        // file.set_permissions(Permissions::from_mode(0o755)).await?;
-
-        // match self.decompress(&mut stream, &mut file).await {
-        //     Ok(_) => Ok(()),
-        //     Err(e) => {
-        //         drop(file);
-        //         tokio::fs::remove_file(&self.output).await?;
-        //         Err(e)
-        //     }
-        // }
-
-        Poll::Pending
+        match self.decompress(&mut stream, &mut file).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                drop(file);
+                tokio::fs::remove_file(&self.output).await?;
+                Err(e)
+            }
+        }
     }
 }

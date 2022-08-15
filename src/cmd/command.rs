@@ -12,8 +12,7 @@ pub(super) enum Errors {
     File(#[from] IoError),
 }
 
+#[async_trait::async_trait]
 pub(super) trait Command {
-    type Future: Future<Output = Result<(), Errors>>;
-
-    fn execute(self) -> Self::Future;
+    async fn execute(self) -> Result<(), Errors>;
 }

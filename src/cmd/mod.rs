@@ -1,10 +1,10 @@
-use std::{future::Future, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use command::Command;
 use directories::BaseDirs;
 
-use self::{command::Errors, download::DownloadCommand, get_versions::GetVersionsCommand};
+use self::{download::DownloadCommand, get_versions::GetVersionsCommand};
 
 mod command;
 mod download;
@@ -50,14 +50,14 @@ fn get_default_output_path() -> String {
 pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
-    let future: Box<dyn Future<Output = Result<(), Errors>>> = match args.commands {
+    let future = match args.commands {
         Commands::Download { version, output } => {
-            Box::new(DownloadCommand::new(version, output).execute())
+            Box::pin(DownloadCommand::new(version, output).execute())
         }
-        Commands::GetVersions { per_page } => Box::new(GetVersionsCommand::new(per_page).execute()),
+        Commands::GetVersions { per_page } => Box::pin(GetVersionsCommand::new(per_page).execute()),
     };
 
-    if let Err(e) = Box::into_pin(future).await {
+    if let Err(e) = future.await {
         Err(Box::new(e))
     } else {
         Ok(())

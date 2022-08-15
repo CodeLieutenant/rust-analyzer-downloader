@@ -3,13 +3,7 @@ use async_compression::tokio::bufread::GzipDecoder;
 use bytes::Bytes;
 use directories::BaseDirs;
 use futures_util::{Stream, StreamExt};
-use std::{
-    fmt::Debug,
-    io::Cursor,
-    path::PathBuf,
-    pin::Pin,
-    task::{Context, Poll},
-};
+use std::{fmt::Debug, io::Cursor, path::PathBuf};
 #[cfg(target_family = "unix")]
 use std::{fs::Permissions, os::unix::prelude::PermissionsExt};
 use tokio::{

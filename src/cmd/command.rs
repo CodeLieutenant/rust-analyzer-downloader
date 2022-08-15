@@ -1,4 +1,4 @@
-use std::{future::Future, io::Error as IoError};
+use std::io::Error as IoError;
 
 use reqwest::Error as ReqwestError;
 use thiserror::Error as ThisError;

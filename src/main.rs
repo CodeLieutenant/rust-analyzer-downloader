@@ -1,5 +1,7 @@
 mod cmd;
 
+use time::Instant;
+use tokio::runtime::Builder;
 use tracing::{error, info, metadata::LevelFilter};
 use tracing_appender::non_blocking;
 use tracing_subscriber::{filter::EnvFilter, fmt::layer as fmt_layer, prelude::*, registry};
@@ -7,6 +9,8 @@ use tracing_subscriber::{filter::EnvFilter, fmt::layer as fmt_layer, prelude::*,
 use cmd::execute;
 
 fn main() {
+    let start = Instant::now();
+
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
@@ -17,16 +21,12 @@ fn main() {
         .with_level(true)
         .with_thread_names(true)
         .with_target(true)
-        .with_writer(stdout_non_blocking);
-
-    #[cfg(debug_assertions)]
-    let stdout_layer = stdout_layer.with_filter(LevelFilter::INFO);
-    #[cfg(not(debug_assertions))]
-    let stdout_layer = stdout_layer.with_filter(LevelFilter::INFO);
+        .with_writer(stdout_non_blocking)
+        .with_filter(LevelFilter::INFO);
 
     registry().with(env_filter).with(stdout_layer).init();
 
-    let runtime = tokio::runtime::Builder::new_current_thread()
+    let runtime = Builder::new_current_thread()
         .enable_io()
         .enable_time()
         .thread_name("Executing Thread")
@@ -48,6 +48,8 @@ fn main() {
             error!("Some error has occurred {}", e);
         }
     });
-
-    info!("Command finished, exiting...");
+    info!(
+        "Command finished, exiting..., took {took}",
+        took = start.elapsed()
+    );
 }

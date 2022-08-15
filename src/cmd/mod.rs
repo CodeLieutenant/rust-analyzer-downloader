@@ -1,14 +1,17 @@
-use std::path::PathBuf;
+use std::{future::Future, path::PathBuf};
 
 use clap::{Parser, Subcommand};
+use command::Command;
 use directories::BaseDirs;
 
+use self::{command::Errors, download::DownloadCommand, get_versions::GetVersionsCommand};
+
+mod command;
 mod download;
 mod get_versions;
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    #[clap(arg_required_else_help = true)]
     Download {
         #[clap(required = false, value_parser, default_value_t=String::from("nightly"))]
         version: String,
@@ -22,8 +25,7 @@ enum Commands {
 }
 
 #[derive(Debug, Parser)]
-#[clap(name = "rust-analyzer-downloader")]
-#[clap(about = "Downloads and gets versions for Rust Analyzer", long_about = None)]
+#[clap(name = "rust-analyzer-downloader",about = "Downloads and gets versions for Rust Analyzer", long_about = None)]
 pub struct Cli {
     #[clap(subcommand)]
     commands: Commands,
@@ -48,23 +50,16 @@ fn get_default_output_path() -> String {
 pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
-    match args.commands {
+    let future: Box<dyn Future<Output = Result<(), Errors>>> = match args.commands {
         Commands::Download { version, output } => {
-            let command = download::DownloadCommand::new(version, output);
-            if let Err(e) = command.execute().await {
-                Err(Box::new(e))
-            } else {
-                Ok(())
-            }
+            Box::new(DownloadCommand::new(version, output).execute())
         }
-        Commands::GetVersions { per_page } => {
-            let command = get_versions::GetVersionsCommand::new(per_page);
+        Commands::GetVersions { per_page } => Box::new(GetVersionsCommand::new(per_page).execute()),
+    };
 
-            if let Err(e) = command.execute().await {
-                Err(Box::new(e))
-            } else {
-                Ok(())
-            }
-        }
+    if let Err(e) = Box::into_pin(future).await {
+        Err(Box::new(e))
+    } else {
+        Ok(())
     }
 }

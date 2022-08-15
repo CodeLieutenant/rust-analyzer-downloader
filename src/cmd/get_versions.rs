@@ -1,13 +1,12 @@
+use std::{pin::Pin, task::{Context, Poll}};
+
 use serde::Deserialize;
 use tracing::info;
 
-#[derive(Debug, thiserror::Error)]
-pub(super) enum Errors {
-    #[error(transparent)]
-    Network(#[from] reqwest::Error),
-}
+use super::{command::Errors, Command};
 
-const RELEASE_GITHUB_API_URL: &str = "https://api.github.com/repos/rust-lang/rust-analyzer/releases";
+const RELEASE_GITHUB_API_URL: &str =
+    "https://api.github.com/repos/rust-lang/rust-analyzer/releases";
 const PER_PAGE: &str = "per_page";
 
 #[derive(Debug, Deserialize)]
@@ -52,7 +51,10 @@ impl GetVersionsCommand {
 
         if !data.is_empty() {
             data.iter().for_each(|release| {
-                info!("Release {} <{}> Prerelease -> {}", release.name, release.tag_name, release.prerelease);
+                info!(
+                    "Release {} <{}> Prerelease -> {}",
+                    release.name, release.tag_name, release.prerelease
+                );
             });
 
             Ok(Paging::Next(page + 1))
@@ -60,11 +62,25 @@ impl GetVersionsCommand {
             Ok(Paging::Done)
         }
     }
+}
 
-    pub(super) async fn execute(self) -> Result<(), Errors> {
-        match self.get_data(RELEASE_GITHUB_API_URL, 1).await {
-            Ok(_next_page) => Ok(()),
-            Err(err) => Err(err)
-        }
+pub(super) struct GetVersionsCommandFuture(GetVersionsCommand);
+
+impl Command for GetVersionsCommand {
+    type Future = GetVersionsCommandFuture;
+    fn execute(self) -> Self::Future {
+        GetVersionsCommandFuture(self)
+    }
+}
+
+impl std::future::Future for GetVersionsCommandFuture {
+    type Output = Result<(), Errors>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // match self.get_data(RELEASE_GITHUB_API_URL, 1).await {
+        //     Ok(_next_page) => Ok(()),
+        //     Err(err) => Err(err),
+        // }
+        Poll::Pending
     }
 }

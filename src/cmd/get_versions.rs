@@ -1,13 +1,10 @@
 use serde::Deserialize;
 use tracing::info;
 
-#[derive(Debug, thiserror::Error)]
-pub(super) enum Errors {
-    #[error(transparent)]
-    Network(#[from] reqwest::Error),
-}
+use super::{command::Errors, Command};
 
-const RELEASE_GITHUB_API_URL: &str = "https://api.github.com/repos/rust-lang/rust-analyzer/releases";
+const RELEASE_GITHUB_API_URL: &str =
+    "https://api.github.com/repos/rust-lang/rust-analyzer/releases";
 const PER_PAGE: &str = "per_page";
 
 #[derive(Debug, Deserialize)]
@@ -52,7 +49,10 @@ impl GetVersionsCommand {
 
         if !data.is_empty() {
             data.iter().for_each(|release| {
-                info!("Release {} <{}> Prerelease -> {}", release.name, release.tag_name, release.prerelease);
+                info!(
+                    "Release {} <{}> Prerelease -> {}",
+                    release.name, release.tag_name, release.prerelease
+                );
             });
 
             Ok(Paging::Next(page + 1))
@@ -60,11 +60,14 @@ impl GetVersionsCommand {
             Ok(Paging::Done)
         }
     }
+}
 
-    pub(super) async fn execute(self) -> Result<(), Errors> {
+#[async_trait::async_trait]
+impl Command for GetVersionsCommand {
+    async fn execute(self) -> Result<(), Errors> {
         match self.get_data(RELEASE_GITHUB_API_URL, 1).await {
             Ok(_next_page) => Ok(()),
-            Err(err) => Err(err)
+            Err(err) => Err(err),
         }
     }
 }

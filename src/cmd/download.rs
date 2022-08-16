@@ -1,3 +1,4 @@
+use super::command::{Command, Errors};
 use async_compression::tokio::bufread::GzipDecoder;
 use bytes::Bytes;
 use directories::BaseDirs;
@@ -7,17 +8,9 @@ use std::{fmt::Debug, io::Cursor, path::PathBuf};
 use std::{fs::Permissions, os::unix::prelude::PermissionsExt};
 use tokio::{
     fs::File,
-    io::{self, AsyncWrite, BufReader},
+    io::{AsyncWrite, BufReader},
 };
 use tracing::{debug, error, warn};
-
-#[derive(Debug, thiserror::Error)]
-pub(super) enum Errors {
-    #[error(transparent)]
-    Network(#[from] reqwest::Error),
-    #[error(transparent)]
-    File(#[from] io::Error),
-}
 
 #[derive(Debug)]
 pub(super) struct DownloadCommand {
@@ -42,29 +35,28 @@ impl DownloadCommand {
         O: AsyncWrite + Unpin,
     {
         let base_dirs = BaseDirs::new().unwrap();
-        let mut path_buffer = PathBuf::new();
+        let mut temp_file_path = PathBuf::new();
 
-        path_buffer.push(base_dirs.cache_dir());
-        path_buffer.push("rust-analyzer.gz");
-        debug!("Temp file path: {}", path_buffer.display());
+        temp_file_path.push(base_dirs.cache_dir());
+        temp_file_path.push("rust-analyzer.gz");
+        debug!("Temp file path: {}", temp_file_path.display());
 
-        let mut tmp_file = File::create(&path_buffer).await?;
+        let mut temp_file = File::create(&temp_file_path).await?;
 
         debug!("Copying Stream to Temp file");
         while let Some(chunk) = stream.next().await {
-            let chunk_data: Bytes = chunk?;
+            let chunk_data: Bytes = chunk?; // TODO: Fix issue when this fails -> remove temporary file
             let mut cursor = Cursor::new(chunk_data);
-            match tokio::io::copy(&mut cursor, &mut tmp_file).await {
+            match tokio::io::copy(&mut cursor, &mut temp_file).await {
                 Ok(_) => {
                     debug!(
                         "Copied chunk to temp file {temp_file}",
-                        temp_file = path_buffer.display()
+                        temp_file = temp_file_path.display()
                     );
                 }
                 Err(e) => {
-                    error!("Some error has occurred while copying stream to temp file: {} TempFile {temp_file}", e, temp_file=path_buffer.display());
-                    drop(tmp_file);
-                    tokio::fs::remove_file(&path_buffer).await?;
+                    error!("Some error has occurred while copying stream to temp file: {} TempFile {temp_file}", e, temp_file=temp_file_path.display());
+                    tokio::fs::remove_file(&temp_file_path).await?;
                     return Err(Errors::File(e));
                 }
             }
@@ -72,48 +64,22 @@ impl DownloadCommand {
         debug!("Copying to TempFile finished");
 
         debug!("Starting decompression");
-        drop(tmp_file);
-        let mut gzip_decoder = GzipDecoder::new(BufReader::new(File::open(&path_buffer).await?));
+        let mut gzip_decoder = GzipDecoder::new(BufReader::new(File::open(&temp_file_path).await?));
 
         match tokio::io::copy(&mut gzip_decoder, output_file).await {
             Ok(_) => {
                 debug!("Decompression finished, removing temp file");
-                tokio::fs::remove_file(&path_buffer).await?;
+                tokio::fs::remove_file(&temp_file_path).await?;
                 Ok(())
             }
             Err(err) => {
                 error!(
                     "Some error has occurred while decompressing: {} TempFile {temp_file}",
                     err,
-                    temp_file = path_buffer.display()
+                    temp_file = temp_file_path.display()
                 );
-                tokio::fs::remove_file(&path_buffer).await?;
+                tokio::fs::remove_file(&temp_file_path).await?;
                 Err(Errors::File(err))
-            }
-        }
-    }
-
-    #[tracing::instrument]
-    pub(super) async fn execute(self) -> Result<(), Errors> {
-        let url = self.get_download_url();
-        debug!("Downloading from: {url}", url = url);
-        let res = self.client.get(url).send().await?;
-        debug!("Response status: {status}", status = res.status());
-
-        let mut stream = res.bytes_stream();
-        let mut file = File::create(&self.output).await?;
-
-        #[cfg(target_family = "unix")]
-        debug!("Setting permissions to file to 755 executable");
-        #[cfg(target_family = "unix")]
-        file.set_permissions(Permissions::from_mode(0o755)).await?;
-
-        match self.decompress(&mut stream, &mut file).await {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                drop(file);
-                tokio::fs::remove_file(&self.output).await?;
-                Err(e)
             }
         }
     }
@@ -143,5 +109,32 @@ impl DownloadCommand {
         #[cfg(target_os = "macos")]
         #[cfg(target_arch = "x86_64")]
         return "rust-analyzer-x86_64-apple-darwin.gz";
+    }
+}
+
+#[async_trait::async_trait]
+impl Command for DownloadCommand {
+    async fn execute(self) -> Result<(), Errors> {
+        let url = self.get_download_url();
+        debug!("Downloading from: {url}", url = url);
+        let res = self.client.get(url).send().await?;
+        debug!("Response status: {status}", status = res.status());
+
+        let mut stream = res.bytes_stream();
+        let mut file = File::create(&self.output).await?;
+
+        #[cfg(target_family = "unix")]
+        debug!("Setting permissions to file to 755 executable");
+        #[cfg(target_family = "unix")]
+        file.set_permissions(Permissions::from_mode(0o755)).await?;
+
+        match self.decompress(&mut stream, &mut file).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                drop(file);
+                tokio::fs::remove_file(&self.output).await?;
+                Err(e)
+            }
+        }
     }
 }

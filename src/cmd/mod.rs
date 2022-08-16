@@ -57,9 +57,8 @@ pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
         Commands::GetVersions { per_page } => Box::pin(GetVersionsCommand::new(per_page).execute()),
     };
 
-    if let Err(e) = future.await {
-        Err(Box::new(e))
-    } else {
-        Ok(())
+    match future.await {
+        Err(err) => Err(Box::new(err)),
+        Ok(_) => Ok(())
     }
 }

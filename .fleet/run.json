@@ -1,0 +1,56 @@
+{
+    "configurations": [
+        {
+            "type": "cargo",
+            "name": "Debug Build",
+            "cargoArgs": ["build"],
+        },
+        {
+            "type": "cargo",
+            "name": "Clippy",
+            "cargoArgs": ["clippy"],
+        },
+        {
+            "type": "cargo",
+            "name": "Cargo Format",
+            "cargoArgs": ["fmt"],
+        },
+        {
+            "type": "cargo",
+            "name": "Cargo Check",
+            "cargoArgs": ["check"],
+        },
+        {
+            "type": "cargo",
+            "name": "Release Build",
+            "cargoArgs": ["build", "--release"],
+        },
+        {
+            "type": "cargo",
+            "name": "Cargo Run -> Get-Verions Command",
+            "dependsOn": [],
+            "cargoArgs": ["run", "--", "get-versions"],
+            "cargoExtraArgs": [],
+            "executableArgs": [],
+            "environment": {},
+        },
+        {
+            "type": "cargo",
+            "name": "Cargo Run -> Download Command",
+            "dependsOn": [],
+            "cargoArgs": ["run", "--", "download", "nightly", "./rust-analyzer"],
+            "cargoExtraArgs": [],
+            "executableArgs": [],
+            "environment": {},
+        },
+        {
+            "type": "cargo",
+            "name": "Cargo Run -> Check Command",
+            "dependsOn": [],
+            "cargoArgs": ["run", "--", "check"],
+            "cargoExtraArgs": [],
+            "executableArgs": [],
+            "environment": {},
+        }
+    ]
+}

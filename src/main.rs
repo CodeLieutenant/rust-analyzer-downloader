@@ -1,13 +1,10 @@
-mod cmd;
-mod services;
 
+use rust_analyzer_downloader::cmd::execute;
 use time::Instant;
 use tokio::runtime::Builder;
 use tracing::{error, info, metadata::LevelFilter};
 use tracing_appender::non_blocking;
 use tracing_subscriber::{filter::EnvFilter, fmt::layer as fmt_layer, prelude::*, registry};
-
-use cmd::execute;
 
 fn main() {
     let start = Instant::now();

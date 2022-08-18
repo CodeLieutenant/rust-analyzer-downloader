@@ -19,25 +19,19 @@ enum Commands {
         #[clap(required = false, value_parser)]
         version: String,
 
-        // TODO: Change 'output' to flag instead of argument
-        #[clap(required = false, value_parser, default_value_t=get_default_output_path())]
+        #[clap(short, long, required = false, value_parser, default_value_t=get_default_output_path())]
         output: String,
     },
     GetVersions {
-        // TODO: Change 'per_page' to flag instead of argument
-        #[clap(required = false, value_parser, default_value_t = 3)]
+        #[clap(short, long, required = false, value_parser, default_value_t = 3)]
         per_page: u32,
     },
     Check {
-        // TODO: Change 'output' to flag instead of argument
-        #[clap(required = false, value_parser, default_value_t=get_default_output_path())]
+        #[clap(short, long, required = false, value_parser, default_value_t=get_default_output_path())]
         output: String,
-        // TODO: Change 'nightly' to flag instead of argument
-        #[clap(required = false, value_parser, default_value_t = false)]
+        #[clap(short, long, required = false, value_parser, default_value_t = false)]
         nightly: bool,
-
-        // TODO: Change 'download' to flag instead of argument
-        #[clap(required = false, value_parser, default_value_t = true)]
+        #[clap(short, long, required = false, value_parser, default_value_t = true)]
         download: bool,
     },
 }

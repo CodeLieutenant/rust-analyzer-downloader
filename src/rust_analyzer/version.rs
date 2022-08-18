@@ -24,7 +24,7 @@ pub enum Error {
     Parse(String),
 }
 
-fn parse_version<'a>(output: Cow<'a, str>) -> Result<Version, Error> {
+fn parse_version(output: Cow<'_, str>) -> Result<Version, Error> {
     // eg. rust-analyzer 0.4.1173-standalone (82ff74050 2022-08-17)
     let semantic_version = output
         .chars()

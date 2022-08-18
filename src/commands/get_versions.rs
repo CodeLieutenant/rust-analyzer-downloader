@@ -17,14 +17,13 @@ impl GetVersionsCommand {
 
 #[async_trait::async_trait]
 impl Command for GetVersionsCommand {
-    #[tracing::instrument]
     async fn execute(self) -> Result<(), Errors> {
         let result = self.versions.get(1, self.per_page).await;
 
         match result {
             Ok(Paging::Next(_next_page, data)) => {
                 data.iter().for_each(|release| {
-                    info!("{:?}", release);
+                    info!("Version: {} Is Prerelease: {}", &release.tag_name, release.prerelease);
                 });
 
                 Ok(())

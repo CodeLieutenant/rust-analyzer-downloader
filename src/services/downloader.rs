@@ -70,7 +70,15 @@ impl Downloader {
 
         debug!("Copying Stream to Temp file");
         while let Some(chunk) = stream.next().await {
-            let chunk_data: Bytes = chunk?; // TODO: Fix issue when this fails -> remove temporary file
+            let chunk_data: Bytes = match chunk {
+                Ok(chunk) => chunk,
+                Err(err) => {
+                    tokio::fs::remove_file(&temp_file_path).await?;
+                    error!("Error while downloading: {}", err);
+                    return Err(Error::Network(err));
+                }
+            };
+
             let mut cursor = Cursor::new(chunk_data);
             match tokio::io::copy(&mut cursor, &mut temp_file).await {
                 Ok(_) => {

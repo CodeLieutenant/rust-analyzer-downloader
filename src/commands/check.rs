@@ -1,7 +1,9 @@
 use super::command::{Command, Errors};
+use crate::rust_analyzer::version::get;
 use crate::services::downloader::Downloader;
 use crate::services::versions::{Paging, Versions};
 use futures::future;
+use tracing::{info, debug};
 
 #[derive(Debug)]
 pub(super) struct CheckCommand {
@@ -31,7 +33,7 @@ impl CheckCommand {
     }
 
     fn compare_versions(&self, current_version: &str, latest_version: &str) -> bool {
-        // Parse versions as date and compare them
+        // TODO: Parse versions as date and compare them
         current_version != latest_version
     }
 }
@@ -40,30 +42,35 @@ impl CheckCommand {
 impl Command for CheckCommand {
     #[tracing::instrument]
     async fn execute(self) -> Result<(), Errors> {
-        // TODO: Get Current Rust-Analyzer version
-        let current_version = "2022-08-17";
+        let current_version = get().await?;
 
         let version = self.versions.get(1, 2).await?;
 
         if let Paging::Next(_, data) = version {
-            let latest_version = &data.get(0).unwrap().tag_name;
-
             let futures = data.iter().map(|release| async {
-                if latest_version == "nightly" && self.nightly {
-                    // TODO: Check the file which contains date when the last nightly version was downloaded
-                    let should_download_based_on_last_download_date = false;
-
-                    if self.should_download && should_download_based_on_last_download_date {
-                        self.downloader.download(latest_version, &self.output).await?;
-                        // TODO: Write the last check into file so that we know when to check again
-                        // and when was the last check for nightly
-                    }
+                if !self.nightly && release.tag_name.as_str() == "nightly" {
+                    debug!("nightly rust-analyzer is not enabled, skipping...");
+                    return Ok(());
                 }
 
-                let latest_version = &release.tag_name;
+                let same = self.compare_versions(
+                    current_version.date_version.as_str(),
+                    release.tag_name.as_str(),
+                );
 
-                if self.compare_versions(current_version, latest_version) && self.should_download {
-                    self.downloader.download(latest_version, &self.output).await?;
+                if !same {
+                    if self.should_download {
+                        self.downloader
+                            .download(release.tag_name.as_str(), self.output.as_str())
+                            .await?;
+
+                        info!(
+                            "Downloaded version {} successfully downloaded",
+                            &release.tag_name
+                        );
+                    } else {
+                        info!("New version available: {}", release.tag_name);
+                    }
                 }
 
                 Result::<(), Errors>::Ok(())

@@ -4,8 +4,11 @@ use clap::{Parser, Subcommand};
 use command::Command;
 use directories::BaseDirs;
 
-use self::{download::DownloadCommand, get_versions::GetVersionsCommand};
+use self::{check::CheckCommand, download::DownloadCommand, get_versions::GetVersionsCommand};
+use crate::services::downloader::Downloader;
+use crate::services::versions::Versions;
 
+mod check;
 mod command;
 mod download;
 mod get_versions;
@@ -13,14 +16,29 @@ mod get_versions;
 #[derive(Debug, Subcommand)]
 enum Commands {
     Download {
-        #[clap(required = false, value_parser, default_value_t=String::from("nightly"))]
+        #[clap(required = false, value_parser)]
         version: String,
+
+        // TODO: Change 'output' to flag instead of argument
         #[clap(required = false, value_parser, default_value_t=get_default_output_path())]
         output: String,
     },
     GetVersions {
+        // TODO: Change 'per_page' to flag instead of argument
         #[clap(required = false, value_parser, default_value_t = 3)]
         per_page: u32,
+    },
+    Check {
+        // TODO: Change 'output' to flag instead of argument
+        #[clap(required = false, value_parser, default_value_t=get_default_output_path())]
+        output: String,
+        // TODO: Change 'nightly' to flag instead of argument
+        #[clap(required = false, value_parser, default_value_t = false)]
+        nightly: bool,
+
+        // TODO: Change 'download' to flag instead of argument
+        #[clap(required = false, value_parser, default_value_t = true)]
+        download: bool,
     },
 }
 
@@ -49,16 +67,33 @@ fn get_default_output_path() -> String {
 
 pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
+    let client = reqwest::ClientBuilder::new().build()?;
 
     let future = match args.commands {
         Commands::Download { version, output } => {
-            Box::pin(DownloadCommand::new(version, output).execute())
+            Box::pin(DownloadCommand::new(version, output, Downloader::new(client)).execute())
         }
-        Commands::GetVersions { per_page } => Box::pin(GetVersionsCommand::new(per_page).execute()),
+        Commands::GetVersions { per_page } => {
+            Box::pin(GetVersionsCommand::new(Versions::new(client), per_page).execute())
+        }
+        Commands::Check {
+            output,
+            nightly,
+            download,
+        } => Box::pin(
+            CheckCommand::new(
+                output,
+                Downloader::new(client.clone()),
+                Versions::new(client),
+                download,
+                nightly,
+            )
+            .execute(),
+        ),
     };
 
     match future.await {
         Err(err) => Err(Box::new(err)),
-        Ok(_) => Ok(())
+        Ok(_) => Ok(()),
     }
 }

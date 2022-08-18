@@ -1,4 +1,5 @@
 mod cmd;
+mod services;
 
 use time::Instant;
 use tokio::runtime::Builder;
@@ -48,6 +49,7 @@ fn main() {
             error!("Some error has occurred {}", e);
         }
     });
+
     info!(
         "Command finished, exiting..., took {took}",
         took = start.elapsed()

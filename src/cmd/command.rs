@@ -1,15 +1,13 @@
-use std::io::Error as IoError;
-
-use reqwest::Error as ReqwestError;
+use crate::services::downloader::Error as DownloaderError;
+use crate::services::versions::Error as VersionsError;
 use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub(super) enum Errors {
     #[error(transparent)]
-    Network(#[from] ReqwestError),
-
+    Download(#[from] DownloaderError),
     #[error(transparent)]
-    File(#[from] IoError),
+    GetVersions(#[from] VersionsError),
 }
 
 #[async_trait::async_trait]

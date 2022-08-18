@@ -1,5 +1,5 @@
 
-use rust_analyzer_downloader::cmd::execute;
+use rust_analyzer_downloader::commands::execute;
 use time::Instant;
 use tokio::runtime::Builder;
 use tracing::{error, info, metadata::LevelFilter};

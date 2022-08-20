@@ -1,8 +1,12 @@
 [package]
 name = "rust-analyzer-downloader"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2021"
-
+readme = "README.md"
+license = "Apache-2.0"
+keywords = ["rust-analyzer", "downloader", "cli-app"]
+authors = ["Dusan Malusev <dusan@dusanmalusev.dev>"]
+rust-version = "1.63"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -20,3 +24,16 @@ tracing-subscriber = { version = "0.3.15", features = ["parking_lot", "serde", "
 serde = { version = "1.0.143", features = ["derive"] }
 time = "0.3"
 async-trait = "0.1"
+futures = "0.3"
+
+[profile.release]
+opt-level = 3
+debug = false
+strip = true
+debug-assertions = false
+overflow-checks = false
+lto = true
+panic = 'unwind'
+incremental = false
+codegen-units = 16
+rpath = true

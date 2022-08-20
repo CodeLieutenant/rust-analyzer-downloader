@@ -1,9 +1,12 @@
-use super::command::{Command, Errors};
 use async_compression::tokio::bufread::GzipDecoder;
 use bytes::Bytes;
 use directories::BaseDirs;
 use futures_util::{Stream, StreamExt};
+use reqwest::Error as ReqwestError;
+use std::io::Error as IoError;
 use std::{fmt::Debug, io::Cursor, path::PathBuf};
+use thiserror::Error as ThisError;
+
 #[cfg(target_family = "unix")]
 use std::{fs::Permissions, os::unix::prelude::PermissionsExt};
 use tokio::{
@@ -13,23 +16,45 @@ use tokio::{
 use tracing::{debug, error, warn};
 
 #[derive(Debug)]
-pub(super) struct DownloadCommand {
-    version: String,
-    output: String,
+pub struct Downloader {
     client: reqwest::Client,
 }
 
-impl DownloadCommand {
+#[derive(Debug, ThisError)]
+pub enum Error {
+    #[error(transparent)]
+    Network(#[from] ReqwestError),
+
+    #[error(transparent)]
+    File(#[from] IoError),
+}
+
+impl Downloader {
     #[tracing::instrument]
-    pub(super) fn new(version: String, output: String) -> Self {
-        Self {
-            version,
-            output,
-            client: reqwest::Client::new(),
-        }
+    pub fn new(client: reqwest::Client) -> Self {
+        Self { client }
     }
 
-    async fn decompress<S, O>(&self, stream: &mut S, output_file: &mut O) -> Result<(), Errors>
+    #[tracing::instrument]
+    fn get_file_name(&self) -> &'static str {
+        #[cfg(target_os = "windows")]
+        #[cfg(target_arch = "x86_64")]
+        return "rust-analyzer-x86_64-pc-windows-msvc.gz";
+
+        #[cfg(target_os = "linux")]
+        #[cfg(target_arch = "x86_64")]
+        return "rust-analyzer-x86_64-unknown-linux-gnu.gz";
+
+        #[cfg(target_os = "macos")]
+        #[cfg(target_arch = "aarch64")]
+        return "rust-analyzer-aarch64-apple-darwin.gz";
+
+        #[cfg(target_os = "macos")]
+        #[cfg(target_arch = "x86_64")]
+        return "rust-analyzer-x86_64-apple-darwin.gz";
+    }
+
+    async fn decompress<S, O>(&self, stream: &mut S, output_file: &mut O) -> Result<(), Error>
     where
         S: Stream<Item = Result<Bytes, reqwest::Error>> + Unpin,
         O: AsyncWrite + Unpin,
@@ -45,7 +70,15 @@ impl DownloadCommand {
 
         debug!("Copying Stream to Temp file");
         while let Some(chunk) = stream.next().await {
-            let chunk_data: Bytes = chunk?; // TODO: Fix issue when this fails -> remove temporary file
+            let chunk_data: Bytes = match chunk {
+                Ok(chunk) => chunk,
+                Err(err) => {
+                    tokio::fs::remove_file(&temp_file_path).await?;
+                    error!("Error while downloading: {}", err);
+                    return Err(Error::Network(err));
+                }
+            };
+
             let mut cursor = Cursor::new(chunk_data);
             match tokio::io::copy(&mut cursor, &mut temp_file).await {
                 Ok(_) => {
@@ -57,7 +90,7 @@ impl DownloadCommand {
                 Err(e) => {
                     error!("Some error has occurred while copying stream to temp file: {} TempFile {temp_file}", e, temp_file=temp_file_path.display());
                     tokio::fs::remove_file(&temp_file_path).await?;
-                    return Err(Errors::File(e));
+                    return Err(Error::File(e));
                 }
             }
         }
@@ -79,49 +112,29 @@ impl DownloadCommand {
                     temp_file = temp_file_path.display()
                 );
                 tokio::fs::remove_file(&temp_file_path).await?;
-                Err(Errors::File(err))
+                Err(Error::File(err))
             }
         }
     }
 
-    fn get_download_url(&self) -> String {
+    #[tracing::instrument]
+    fn get_download_url(&self, version: &str) -> String {
         format!(
             "https://github.com/rust-lang/rust-analyzer/releases/download/{}/{}",
-            &self.version,
+            version,
             self.get_file_name(),
         )
     }
 
     #[tracing::instrument]
-    fn get_file_name(&self) -> &'static str {
-        #[cfg(target_os = "windows")]
-        #[cfg(target_arch = "x86_64")]
-        return "rust-analyzer-x86_64-pc-windows-msvc.gz";
-
-        #[cfg(target_os = "linux")]
-        #[cfg(target_arch = "x86_64")]
-        return "rust-analyzer-x86_64-unknown-linux-gnu.gz";
-
-        #[cfg(target_os = "macos")]
-        #[cfg(target_arch = "aarch64")]
-        return "rust-analyzer-aarch64-apple-darwin.gz";
-
-        #[cfg(target_os = "macos")]
-        #[cfg(target_arch = "x86_64")]
-        return "rust-analyzer-x86_64-apple-darwin.gz";
-    }
-}
-
-#[async_trait::async_trait]
-impl Command for DownloadCommand {
-    async fn execute(self) -> Result<(), Errors> {
-        let url = self.get_download_url();
+    pub async fn download(&self, version: &str, output: &str) -> Result<(), Error> {
+        let url = self.get_download_url(version);
         debug!("Downloading from: {url}", url = url);
         let res = self.client.get(url).send().await?;
         debug!("Response status: {status}", status = res.status());
 
         let mut stream = res.bytes_stream();
-        let mut file = File::create(&self.output).await?;
+        let mut file = File::create(output).await?;
 
         #[cfg(target_family = "unix")]
         debug!("Setting permissions to file to 755 executable");
@@ -131,8 +144,7 @@ impl Command for DownloadCommand {
         match self.decompress(&mut stream, &mut file).await {
             Ok(_) => Ok(()),
             Err(e) => {
-                drop(file);
-                tokio::fs::remove_file(&self.output).await?;
+                tokio::fs::remove_file(output).await?;
                 Err(e)
             }
         }

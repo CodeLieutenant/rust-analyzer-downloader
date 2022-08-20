@@ -9,6 +9,7 @@
 ### Usage
 
 ```
+rust-analyzer-downloader
 Downloads and gets versions for Rust Analyzer
 
 USAGE:
@@ -18,6 +19,7 @@ OPTIONS:
     -h, --help    Print help information
 
 SUBCOMMANDS:
+    check
     download
     get-versions
     help            Print this message or the help of the given subcommand(s)

@@ -3,7 +3,7 @@ use crate::rust_analyzer::version::get;
 use crate::services::downloader::Downloader;
 use crate::services::versions::{Paging, Versions};
 use futures::future;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub(super) struct CheckCommand {
@@ -34,13 +34,12 @@ impl CheckCommand {
 
     fn compare_versions(&self, current_version: &str, latest_version: &str) -> bool {
         // TODO: Parse versions as date and compare them
-        current_version != latest_version
+        current_version == latest_version
     }
 }
 
 #[async_trait::async_trait]
 impl Command for CheckCommand {
-    #[tracing::instrument]
     async fn execute(self) -> Result<(), Errors> {
         let current_version = get().await?;
 
@@ -50,6 +49,11 @@ impl Command for CheckCommand {
             let futures = data.iter().map(|release| async {
                 if !self.nightly && release.tag_name.as_str() == "nightly" {
                     debug!("nightly rust-analyzer is not enabled, skipping...");
+                    return Ok(());
+                }
+
+                if self.nightly && release.tag_name.as_str() != "nightly" {
+                    debug!("nightly rust-analyzer is enabled, skipping version {}...", release.tag_name.as_str());
                     return Ok(());
                 }
 

@@ -31,7 +31,7 @@ enum Commands {
         output: String,
         #[clap(short, long, required = false, value_parser, default_value_t = false)]
         nightly: bool,
-        #[clap(short, long, required = false, value_parser, default_value_t = true)]
+        #[clap(short, long, required = false, value_parser, default_value_t = false)]
         download: bool,
     },
 }

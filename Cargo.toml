@@ -1,6 +1,6 @@
 [package]
 name = "rust-analyzer-downloader"
-version = "2.0.1"
+version = "2.0.2"
 edition = "2021"
 readme = "README.md"
 license = "Apache-2.0"
@@ -20,6 +20,8 @@ reqwest = { version = "0.11.11", features = [
     "async-compression",
     "json",
     "deflate",
+    "rustls-tls",
+    "native-tls-alpn"
 ] }
 thiserror = "1.0.32"
 tokio = { version = "1.20.1", features = ["full"] }

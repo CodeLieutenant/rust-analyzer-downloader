@@ -2,7 +2,7 @@ use super::command::{Command, Errors};
 use crate::rust_analyzer::version::get;
 use crate::services::downloader::Downloader;
 use crate::services::versions::{Paging, Versions};
-use futures::future;
+use futures::future::join_all;
 use time::ext::NumericalDuration;
 use time::format_description::FormatItem;
 use time::parsing::Parsable;
@@ -106,7 +106,7 @@ impl Command for CheckCommand {
                 Result::<(), Errors>::Ok(())
             });
 
-            let result = future::join_all(futures)
+            let result = join_all(futures)
                 .await
                 .drain(..)
                 .find(|result| result.is_err());

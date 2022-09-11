@@ -11,6 +11,9 @@ pub(super) enum Errors {
     GetVersions(#[from] VersionsError),
     #[error(transparent)]
     CurrentVersion(#[from] CurrentVersionError),
+
+    #[error(transparent)]
+    ParseDate(#[from] time::error::Parse),
 }
 
 #[async_trait::async_trait]

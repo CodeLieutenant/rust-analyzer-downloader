@@ -23,7 +23,10 @@ impl Command for GetVersionsCommand {
         match result {
             Ok(Paging::Next(_next_page, data)) => {
                 data.iter().for_each(|release| {
-                    info!("Version: {} Is Prerelease: {}", &release.tag_name, release.prerelease);
+                    info!(
+                        "Version: {} Is Prerelease: {}",
+                        &release.tag_name, release.prerelease
+                    );
                 });
 
                 Ok(())

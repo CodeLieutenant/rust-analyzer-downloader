@@ -783,6 +783,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rad"
+version = "0.1.0"
+dependencies = [
+ "rust-analyzer-downloader",
+ "time",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -876,7 +888,7 @@ dependencies = [
 
 [[package]]
 name = "rust-analyzer-downloader"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "async-compression",
  "async-trait",
@@ -891,8 +903,6 @@ dependencies = [
  "time",
  "tokio",
  "tracing",
- "tracing-appender",
- "tracing-subscriber",
 ]
 
 [[package]]

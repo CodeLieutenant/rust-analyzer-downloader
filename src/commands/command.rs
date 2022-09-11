@@ -1,6 +1,6 @@
+use crate::rust_analyzer::version::Error as CurrentVersionError;
 use crate::services::downloader::Error as DownloaderError;
 use crate::services::versions::Error as VersionsError;
-use crate::rust_analyzer::version::Error as CurrentVersionError;
 use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
@@ -11,6 +11,9 @@ pub(super) enum Errors {
     GetVersions(#[from] VersionsError),
     #[error(transparent)]
     CurrentVersion(#[from] CurrentVersionError),
+
+    #[error(transparent)]
+    ParseDate(#[from] time::error::Parse),
 }
 
 #[async_trait::async_trait]

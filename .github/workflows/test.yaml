@@ -1,33 +1,99 @@
-name: Test
+name: 'Testing'
 
 on:
-  pull_request:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
+      - dev
 
 env:
   RUST_BACKTRACE: 1
 
 jobs:
+  style:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
+      - name: cargo fmt --check
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
   test:
-    name: Test
-    runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        rust:
+          - stable
+        os:
+          - ubuntu-latest
+        include:
+          - rust: stable
+    runs-on: ${{ matrix.os }}
+    name: Test ${{ matrix.rust }} on ${{ matrix.os }}
+    needs: [style]
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
       - name: 'Download rust-analyzer nightly'
         run: |
           wget -c -O /tmp/rust-analyzer.gz https://github.com/rust-lang/rust-analyzer/releases/download/nightly/rust-analyzer-x86_64-unknown-linux-gnu.gz
           gunzip /tmp/rust-analyzer.gz
           sudo mv /tmp/rust-analyzer /bin/rust-analyzer
           chmod +x /bin/rust-analyzer
-      - name: Install Rust
+      - name: Install Rust (${{ matrix.rust }})
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: ${{ matrix.rust }}
+          override: true
 
       - name: Test
-        run: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: Test all benches
+        if: matrix.benches
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --benches
+  # not working with tokio::test
+  # miri:
+  #   name: Test with Miri
+  #   needs: [style]
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+
+  #     - name: Install Rust
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: nightly
+  #         components: miri
+  #         override: true
+  #     - name: 'Download rust-analyzer nightly'
+  #       run: |
+  #         wget -c -O /tmp/rust-analyzer.gz https://github.com/rust-lang/rust-analyzer/releases/download/nightly/rust-analyzer-x86_64-unknown-linux-gnu.gz
+  #         gunzip /tmp/rust-analyzer.gz
+  #         sudo mv /tmp/rust-analyzer /bin/rust-analyzer
+  #         chmod +x /bin/rust-analyzer
+  #     - name: Test
+  #       run: MIRIFLAGS="-Zmiri-disable-isolation" cargo miri test

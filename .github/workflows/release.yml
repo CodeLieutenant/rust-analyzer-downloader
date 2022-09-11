@@ -47,7 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: ./rad.exe
           asset_name: rad-${{ steps.git_tag.outputs.tag }}-${{ matrix.os }}.exe
           asset_content_type: application/octet-stream
@@ -58,7 +58,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: ./rad
           asset_name: rad-${{ steps.git_tag.outputs.tag }}-${{ matrix.os }}
           asset_content_type: application/octet-stream

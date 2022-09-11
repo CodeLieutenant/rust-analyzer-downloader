@@ -41,7 +41,6 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-latest
         include:
           - rust: stable
     runs-on: ${{ matrix.os }}

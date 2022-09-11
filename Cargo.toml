@@ -21,7 +21,8 @@ reqwest = { version = "0.11.11", features = [
     "json",
     "deflate",
     "rustls-tls",
-    "native-tls-alpn"
+    "native-tls-alpn",
+    "trust-dns"
 ] }
 thiserror = "1.0.32"
 tokio = { version = "1.20.1", features = ["full"] }

@@ -13,7 +13,7 @@ rust-version = "1.63"
 clap = { version = "3.2.16", features = ["derive"] }
 directories = "4.0.1"
 futures-util = "0.3.21"
-reqwest = { version = "0.11.11", features = [
+reqwest = { version = "0.11.11", default-features = false, features = [
     "serde_json",
     "gzip",
     "stream",
@@ -22,7 +22,11 @@ reqwest = { version = "0.11.11", features = [
     "deflate",
     "rustls-tls",
     "native-tls-alpn",
-    "trust-dns"
+    "trust-dns",
+    "hyper-rustls",
+    "tokio-rustls",
+    "rustls",
+    "rustls-pemfile"
 ] }
 thiserror = "1.0.32"
 tokio = { version = "1.20.1", features = ["full"] }
@@ -33,6 +37,7 @@ serde = { version = "1.0.143", features = ["derive"] }
 time = { version = "0.3", features = ["std", "parsing"] }
 async-trait = "0.1"
 futures = "0.3"
+
 
 [profile.release]
 opt-level = 3

@@ -72,27 +72,28 @@ jobs:
         with:
           command: test
           args: --benches
-  miri:
-    name: Test with Miri
-    needs: [style]
-    runs-on: ubuntu-latest
+  # not working with tokio::test
+  # miri:
+  #   name: Test with Miri
+  #   needs: [style]
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: miri
-          override: true
-      - name: 'Download rust-analyzer nightly'
-        run: |
-          wget -c -O /tmp/rust-analyzer.gz https://github.com/rust-lang/rust-analyzer/releases/download/nightly/rust-analyzer-x86_64-unknown-linux-gnu.gz
-          gunzip /tmp/rust-analyzer.gz
-          sudo mv /tmp/rust-analyzer /bin/rust-analyzer
-          chmod +x /bin/rust-analyzer
-      - name: Test
-        run: MIRIFLAGS="-Zmiri-disable-isolation" cargo miri test
+  #     - name: Install Rust
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: nightly
+  #         components: miri
+  #         override: true
+  #     - name: 'Download rust-analyzer nightly'
+  #       run: |
+  #         wget -c -O /tmp/rust-analyzer.gz https://github.com/rust-lang/rust-analyzer/releases/download/nightly/rust-analyzer-x86_64-unknown-linux-gnu.gz
+  #         gunzip /tmp/rust-analyzer.gz
+  #         sudo mv /tmp/rust-analyzer /bin/rust-analyzer
+  #         chmod +x /bin/rust-analyzer
+  #     - name: Test
+  #       run: MIRIFLAGS="-Zmiri-disable-isolation" cargo miri test

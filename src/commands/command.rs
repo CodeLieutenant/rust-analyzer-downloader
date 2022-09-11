@@ -1,6 +1,6 @@
+use crate::rust_analyzer::version::Error as CurrentVersionError;
 use crate::services::downloader::Error as DownloaderError;
 use crate::services::versions::Error as VersionsError;
-use crate::rust_analyzer::version::Error as CurrentVersionError;
 use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]

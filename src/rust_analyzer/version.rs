@@ -43,10 +43,10 @@ fn parse_version(output: Cow<'_, str>) -> Result<Version, Error> {
 
     if semantic_version.is_empty() {
         Err(Error::Parse(format!("no semantic version '{}'", output)))
-    } else if date_version.is_empty(){
+    } else if date_version.is_empty() {
         Err(Error::Parse(format!("no date version '{}'", output)))
     } else {
-        Ok(Version{
+        Ok(Version {
             date_version,
             semantic_version,
         })
@@ -82,7 +82,13 @@ mod tests {
     fn test_parse_version() {
         let output = "rust-analyzer 0.4.1173-standalone (82ff74050 2022-08-17)";
         let version = parse_version(output.into()).unwrap();
-        assert_eq!(version, Version {date_version: "2022-08-17".to_string(), semantic_version: "0.4.1173-standalone".to_string()});
+        assert_eq!(
+            version,
+            Version {
+                date_version: "2022-08-17".to_string(),
+                semantic_version: "0.4.1173-standalone".to_string()
+            }
+        );
     }
 
     #[test]

@@ -1,7 +1,8 @@
-use crate::rust_analyzer::version::Error as CurrentVersionError;
-use crate::services::downloader::Error as DownloaderError;
-use crate::services::versions::Error as VersionsError;
 use thiserror::Error as ThisError;
+
+use rust_analyzer_downloader::rust_analyzer::version::Error as CurrentVersionError;
+use rust_analyzer_downloader::services::downloader::Error as DownloaderError;
+use rust_analyzer_downloader::services::versions::Error as VersionsError;
 
 #[derive(Debug, ThisError)]
 pub(super) enum Errors {

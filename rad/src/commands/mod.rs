@@ -3,10 +3,11 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use command::Command;
 use directories::BaseDirs;
+use tracing::debug;
 
 use self::{check::CheckCommand, download::DownloadCommand, get_versions::GetVersionsCommand};
-use crate::services::downloader::Downloader;
-use crate::services::versions::Versions;
+use rust_analyzer_downloader::services::downloader::Downloader;
+use rust_analyzer_downloader::services::versions::Versions;
 
 mod check;
 mod command;
@@ -59,6 +60,7 @@ fn get_default_output_path() -> String {
     buf.as_path().to_string_lossy().into()
 }
 
+// #[tracing::instrument]
 pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
     let client = reqwest::ClientBuilder::new().build()?;
@@ -68,7 +70,12 @@ pub async fn execute() -> Result<(), Box<dyn std::error::Error>> {
             Box::pin(DownloadCommand::new(version, output, Downloader::new(client)).execute())
         }
         Commands::GetVersions { per_page } => {
-            Box::pin(GetVersionsCommand::new(Versions::new(client), per_page).execute())
+            debug!("Fetching versions from GitHub Releases API");
+            let result =
+                Box::pin(GetVersionsCommand::new(Versions::new(client), per_page).execute());
+            debug!("Fetching versions completed from GitHub Releases API");
+
+            result
         }
         Commands::Check {
             output,

@@ -1,2 +1,2 @@
-pub(crate) mod downloader;
-pub(crate) mod versions;
+pub mod downloader;
+pub mod versions;

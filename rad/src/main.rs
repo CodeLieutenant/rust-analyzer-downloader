@@ -1,9 +1,11 @@
-use rust_analyzer_downloader::commands::execute;
 use time::Instant;
 use tokio::runtime::Builder;
 use tracing::{debug, error, metadata::LevelFilter};
-use tracing_appender::non_blocking;
 use tracing_subscriber::{filter::EnvFilter, fmt::layer as fmt_layer, prelude::*, registry};
+
+mod commands;
+
+use crate::commands::execute;
 
 fn main() {
     let start = Instant::now();
@@ -12,13 +14,12 @@ fn main() {
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
 
-    let (stdout_non_blocking, _stdout_guard) = non_blocking(std::io::stdout());
     let stdout_layer = fmt_layer()
         .with_ansi(true)
         .with_level(true)
-        .with_thread_names(true)
-        .with_target(true)
-        .with_writer(stdout_non_blocking)
+        .with_thread_names(false)
+        .with_target(false)
+        .with_writer(std::io::stdout)
         .with_filter(LevelFilter::INFO);
 
     registry().with(env_filter).with(stdout_layer).init();

@@ -1,13 +1,14 @@
-use super::command::{Command, Errors};
-use crate::rust_analyzer::version::get;
-use crate::services::downloader::Downloader;
-use crate::services::versions::{Paging, Versions};
 use futures::future::join_all;
 use time::ext::NumericalDuration;
 use time::format_description::FormatItem;
 use time::parsing::Parsable;
 use time::{format_description, Date};
 use tracing::{debug, info, warn};
+
+use super::command::{Command, Errors};
+use rust_analyzer_downloader::rust_analyzer::version::{get, Version};
+use rust_analyzer_downloader::services::downloader::Downloader;
+use rust_analyzer_downloader::services::versions::{Paging, ReleasesJsonResponse, Versions};
 
 #[derive(Debug)]
 pub(super) struct CheckCommand {
@@ -59,63 +60,82 @@ where
     }
 }
 
+impl CheckCommand {
+    async fn download(
+        self,
+        data: Vec<ReleasesJsonResponse>,
+        current_version: Version,
+    ) -> Result<(), Errors> {
+        let futures = data.iter().map(|release| async {
+            let release = release.tag_name.as_str();
+
+            if !self.nightly && release == "nightly" {
+                debug!("nightly rust-analyzer is not enabled, skipping...");
+                return Ok(());
+            }
+
+            if self.nightly && release != "nightly" {
+                debug!(
+                    "nightly rust-analyzer is enabled, skipping version {}...",
+                    release
+                );
+                return Ok(());
+            }
+
+            let new_version_exists = compare_versions(
+                &self.date_format,
+                current_version.date_version.as_str(),
+                release,
+            )?;
+
+            if new_version_exists {
+                if self.should_download {
+                    self.downloader
+                        .download(release, self.output.as_str())
+                        .await?;
+
+                    info!(
+                        release = release,
+                        "Downloaded version successfully downloaded"
+                    );
+                } else {
+                    info!(release = release, "New version available");
+                }
+            }
+
+            info!("Current version is up to date");
+            Result::<(), Errors>::Ok(())
+        });
+
+        let result = join_all(futures)
+            .await
+            .drain(..)
+            .find(|result| result.is_err());
+
+        match result {
+            Some(Err(err)) => Err(err),
+            None | Some(Ok(_)) => Ok(()),
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl Command for CheckCommand {
+    #[tracing::instrument]
     async fn execute(self) -> Result<(), Errors> {
         let current_version = get().await?;
 
+        debug!(
+            "Current version is {} (Semantic Version: {})",
+            current_version.date_version, current_version.semantic_version
+        );
         let version = self.versions.get(1, 2).await?;
 
         if let Paging::Next(_, data) = version {
-            let futures = data.iter().map(|release| async {
-                if !self.nightly && release.tag_name.as_str() == "nightly" {
-                    debug!("nightly rust-analyzer is not enabled, skipping...");
-                    return Ok(());
-                }
-
-                if self.nightly && release.tag_name.as_str() != "nightly" {
-                    debug!(
-                        "nightly rust-analyzer is enabled, skipping version {}...",
-                        release.tag_name.as_str()
-                    );
-                    return Ok(());
-                }
-
-                let new_version_exists = compare_versions(
-                    &self.date_format,
-                    current_version.date_version.as_str(),
-                    release.tag_name.as_str(),
-                )?;
-
-                if new_version_exists {
-                    if self.should_download {
-                        self.downloader
-                            .download(release.tag_name.as_str(), self.output.as_str())
-                            .await?;
-
-                        info!(
-                            "Downloaded version {} successfully downloaded",
-                            &release.tag_name
-                        );
-                    } else {
-                        info!("New version available: {}", release.tag_name);
-                    }
-                }
-
-                info!("Current version is up to date");
-                Result::<(), Errors>::Ok(())
-            });
-
-            let result = join_all(futures)
-                .await
-                .drain(..)
-                .find(|result| result.is_err());
-
-            match result {
-                Some(Err(err)) => Err(err),
-                None | Some(Ok(_)) => Ok(()),
-            }
+            debug!(latest_versions = ?data, "Version from GitHub Release");
+            self.download(data, current_version).await
         } else {
+            debug!("No versions available in Github Release");
             Ok(())
         }
     }

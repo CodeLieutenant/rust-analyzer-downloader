@@ -10,7 +10,6 @@ rust-version = "1.63"
 
 
 [dependencies]
-clap = { version = "3.2.16", features = ["derive"] }
 directories = "4.0.1"
 futures-util = "0.3.21"
 reqwest = { version = "0.11.11", default-features = false, features = ["serde_json", "gzip", "stream", "async-compression", "json", "deflate", "rustls-tls", "trust-dns", "hyper-rustls", "tokio-rustls", "rustls", "rustls-pemfile"] }
@@ -21,8 +20,6 @@ async-compression = { version = "0.3.14", features = ["futures-io", "tokio"] }
 tracing = { version = "0.1.36", features = ["async-await"] }
 serde = { version = "1.0.143", features = ["derive"] }
 time = { version = "0.3", features = ["std", "parsing"] }
-async-trait = "0.1"
-futures = "0.3"
 
 
 [profile.release]

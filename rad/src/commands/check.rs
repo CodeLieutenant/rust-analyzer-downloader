@@ -127,7 +127,6 @@ impl CheckCommand {
 
 #[async_trait::async_trait]
 impl Command for CheckCommand {
-    #[tracing::instrument]
     async fn execute(self) -> Result<(), Errors> {
         let current_version = match get().await {
             Ok(version) => Some(version),

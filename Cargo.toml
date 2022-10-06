@@ -14,12 +14,12 @@ directories = "4.0.1"
 futures-util = "0.3.21"
 reqwest = { version = "0.11.11", default-features = false, features = ["serde_json", "gzip", "stream", "async-compression", "json", "deflate", "rustls-tls", "trust-dns", "hyper-rustls", "tokio-rustls", "rustls", "rustls-pemfile"] }
 thiserror = "1.0.32"
-tokio = { version = "1.20.1", features = ["full"] }
 bytes = "1.2.1"
 async-compression = { version = "0.3.14", features = ["futures-io", "tokio"] }
 tracing = { version = "0.1.36", features = ["async-await"] }
 serde = { version = "1.0.143", features = ["derive"] }
 time = { version = "0.3", features = ["std", "parsing"] }
+tokio = { version = "1.20.1", features = ["full"], optional = true }
 
 
 [profile.release]
@@ -36,3 +36,7 @@ rpath = true
 
 [workspace]
 members = ["rad"]
+
+[features]
+default = ["tokio"]
+tokio = ["dep:tokio"]

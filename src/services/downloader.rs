@@ -15,6 +15,7 @@ use tokio::{
 };
 use tracing::{debug, error, warn};
 
+
 #[derive(Debug)]
 pub struct Downloader {
     client: reqwest::Client,
@@ -80,7 +81,7 @@ impl Downloader {
             };
 
             let mut cursor = Cursor::new(chunk_data);
-            match tokio::io::copy(&mut cursor, &mut temp_file).await {
+            match crate::fs::copy(&mut cursor, &mut temp_file).await {
                 Ok(_) => {
                     debug!(
                         "Copied chunk to temp file {temp_file}",
@@ -99,7 +100,7 @@ impl Downloader {
         debug!("Starting decompression");
         let mut gzip_decoder = GzipDecoder::new(BufReader::new(File::open(&temp_file_path).await?));
 
-        match tokio::io::copy(&mut gzip_decoder, output_file).await {
+        match crate::fs::copy(&mut gzip_decoder, output_file).await {
             Ok(_) => {
                 debug!("Decompression finished, removing temp file");
                 tokio::fs::remove_file(&temp_file_path).await?;

@@ -15,7 +15,6 @@ use tokio::{
 };
 use tracing::{debug, error, warn};
 
-
 #[derive(Debug)]
 pub struct Downloader {
     client: reqwest::Client,

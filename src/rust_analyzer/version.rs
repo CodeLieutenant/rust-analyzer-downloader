@@ -14,7 +14,7 @@ pub struct Version {
 
 #[derive(Debug, ThisError)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("An IO error occurred: {0}")]
     Io(#[from] IoError),
 
     #[error("Failed to execute command: {0}")]

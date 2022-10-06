@@ -43,7 +43,7 @@ fn main() {
         let result = execute().await;
 
         if let Err(e) = result {
-            error!("Some error has occurred {}", e);
+            error!("Some error has occurred: {}", e);
         }
     });
 

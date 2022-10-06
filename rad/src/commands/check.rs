@@ -1,3 +1,5 @@
+use std::io::ErrorKind;
+
 use futures::future::join_all;
 use time::ext::NumericalDuration;
 use time::format_description::FormatItem;
@@ -6,7 +8,7 @@ use time::{format_description, Date};
 use tracing::{debug, info, warn};
 
 use super::command::{Command, Errors};
-use rust_analyzer_downloader::rust_analyzer::version::{get, Version};
+use rust_analyzer_downloader::rust_analyzer::version::{get, Error as VersionError, Version};
 use rust_analyzer_downloader::services::downloader::Downloader;
 use rust_analyzer_downloader::services::versions::{Paging, ReleasesJsonResponse, Versions};
 
@@ -64,7 +66,7 @@ impl CheckCommand {
     async fn download(
         self,
         data: Vec<ReleasesJsonResponse>,
-        current_version: Version,
+        current_version: Option<Version>,
     ) -> Result<(), Errors> {
         let futures = data.iter().map(|release| async {
             let release = release.tag_name.as_str();
@@ -82,11 +84,14 @@ impl CheckCommand {
                 return Ok(());
             }
 
-            let new_version_exists = compare_versions(
-                &self.date_format,
-                current_version.date_version.as_str(),
-                release,
-            )?;
+            let new_version_exists = match current_version {
+                Some(ref current_version) => compare_versions(
+                    &self.date_format,
+                    current_version.date_version.as_str(),
+                    release,
+                )?,
+                None => true,
+            };
 
             if new_version_exists {
                 if self.should_download {
@@ -101,9 +106,10 @@ impl CheckCommand {
                 } else {
                     info!(release = release, "New version available");
                 }
+            } else {
+                info!("Current version is up to date");
             }
 
-            info!("Current version is up to date");
             Result::<(), Errors>::Ok(())
         });
 
@@ -123,12 +129,26 @@ impl CheckCommand {
 impl Command for CheckCommand {
     #[tracing::instrument]
     async fn execute(self) -> Result<(), Errors> {
-        let current_version = get().await?;
+        let current_version = match get().await {
+            Ok(version) => Some(version),
+            Err(VersionError::Io(err)) if err.kind() == ErrorKind::NotFound => {
+                warn!("No rust-analyzer binary found, downloading latest version");
+                None
+            }
+            Err(err) => {
+                warn!(error = ?err, "Failed to get current version");
+                return Err(err.into());
+            }
+        };
 
-        debug!(
-            "Current version is {} (Semantic Version: {})",
-            current_version.date_version, current_version.semantic_version
-        );
+        if current_version.is_some() {
+            let current_version = current_version.as_ref().unwrap();
+            debug!(
+                "Current version is {} (Semantic Version: {})",
+                current_version.date_version, current_version.semantic_version
+            );
+        }
+
         let version = self.versions.get(1, 2).await?;
 
         if let Paging::Next(_, data) = version {

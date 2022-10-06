@@ -8,6 +8,4 @@ where
 {
     #[cfg(feature = "tokio")]
     return tokio::io::copy(reader, writer).await;
-
-    unreachable!()
 }

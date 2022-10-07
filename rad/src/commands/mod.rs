@@ -1,9 +1,10 @@
+use std::env::VarError;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use command::Command;
 use directories::BaseDirs;
-use tracing::debug;
+use tracing::{debug, error};
 
 use self::{check::CheckCommand, download::DownloadCommand, get_versions::GetVersionsCommand};
 use rust_analyzer_downloader::services::downloader::Downloader;
@@ -44,7 +45,7 @@ pub struct Cli {
     commands: Commands,
 }
 
-fn get_default_output_path() -> String {
+fn default_user_output_path() -> String {
     let base_dirs = BaseDirs::new().unwrap();
     let home_dir = base_dirs.home_dir();
 
@@ -58,6 +59,28 @@ fn get_default_output_path() -> String {
     buf.push("rust-analyzer");
 
     buf.as_path().to_string_lossy().into()
+}
+
+fn get_default_output_path() -> String {
+    let env = std::env::var("RAD_OUTPUT_PATH");
+
+    match env {
+        Ok(path) => path,
+        Err(VarError::NotUnicode(os_str)) => {
+            error!("RAD_OUTPUT_PATH is not unicode: {:?}", os_str);
+
+            default_user_output_path()
+        }
+        Err(VarError::NotPresent) => {
+            let path = default_user_output_path();
+            debug!(
+                path = path.as_str(),
+                "RAD_OUTPUT_PATH not present, using default path"
+            );
+
+            path
+        }
+    }
 }
 
 // #[tracing::instrument]

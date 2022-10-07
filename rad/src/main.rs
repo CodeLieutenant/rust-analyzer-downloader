@@ -19,8 +19,7 @@ fn main() {
         .with_level(true)
         .with_thread_names(false)
         .with_target(false)
-        .with_writer(std::io::stdout)
-        .with_filter(LevelFilter::INFO);
+        .with_writer(std::io::stdout);
 
     registry().with(env_filter).with(stdout_layer).init();
 

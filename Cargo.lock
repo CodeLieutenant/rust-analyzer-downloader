@@ -736,7 +736,7 @@ dependencies = [
 
 [[package]]
 name = "rad"
-version = "0.2.0"
+version = "2.3.0"
 dependencies = [
  "async-trait",
  "clap",
@@ -895,7 +895,7 @@ dependencies = [
 
 [[package]]
 name = "rust-analyzer-downloader"
-version = "2.1.0-dev"
+version = "2.3.0"
 dependencies = [
  "async-compression",
  "bytes",

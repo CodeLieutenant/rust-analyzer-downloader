@@ -80,13 +80,21 @@ impl CheckCommand {
                 return Ok(());
             }
 
-            let new_version_exists = match current_version {
-                Some(ref current_version) => compare_versions(
-                    &self.date_format,
-                    current_version.date_version.as_str(),
-                    release,
-                )?,
-                None => true,
+            let new_version_exists = if self.nightly && release == "nightly" {
+                debug!(
+                    "nightly rust-analyzer is enabled, downloading new version {}",
+                    release
+                );
+                true
+            } else {
+                match current_version {
+                    Some(ref current_version) => compare_versions(
+                        &self.date_format,
+                        current_version.date_version.as_str(),
+                        release,
+                    )?,
+                    None => true,
+                }
             };
 
             if new_version_exists {

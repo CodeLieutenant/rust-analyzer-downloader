@@ -51,15 +51,11 @@ where
     T: Parsable + ?Sized,
 {
     let current_date = Date::parse(current_version, format)?;
-    let current_date = current_date + 1.days();
-
     let latest_date = Date::parse(latest_version, format)?;
 
-    if latest_date == current_date {
-        Ok(false)
-    } else {
-        Ok(current_date < latest_date)
-    }
+    let before_3_days = latest_date - 3.days();
+
+    Ok(!(current_date >= before_3_days && before_3_days <= latest_date))
 }
 
 impl CheckCommand {

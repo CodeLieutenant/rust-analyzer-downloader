@@ -1,6 +1,6 @@
 use time::Instant;
 use tokio::runtime::Builder;
-use tracing::{debug, error, metadata::LevelFilter};
+use tracing::{debug, error};
 use tracing_subscriber::{filter::EnvFilter, fmt::layer as fmt_layer, prelude::*, registry};
 
 mod commands;

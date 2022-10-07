@@ -9,7 +9,6 @@ pub(super) struct GetVersionsCommand {
 }
 
 impl GetVersionsCommand {
-    #[tracing::instrument]
     pub(super) fn new(versions: Versions, per_page: u32) -> Self {
         Self { versions, per_page }
     }

@@ -12,8 +12,6 @@ pub(super) struct DownloadCommand {
 }
 
 impl DownloadCommand {
-    #[tracing::instrument]
-
     pub(super) fn new(version: String, output: String, downloader: Downloader) -> Self {
         Self {
             version,
@@ -25,7 +23,6 @@ impl DownloadCommand {
 
 #[async_trait::async_trait]
 impl Command for DownloadCommand {
-    #[tracing::instrument]
     async fn execute(self) -> Result<(), Errors> {
         debug!(
             version = &self.version,
